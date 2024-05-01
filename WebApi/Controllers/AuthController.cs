@@ -4,15 +4,16 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using WebApi.Models;
+using WebApi.Services;
 
 namespace WebApi.Controllers;
 
 [Route("auth")]
 [ApiController]
-public class AuthController : ControllerBase
+public class AuthController(IAccountService _service) : ControllerBase
 {
     [HttpPost]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         //var userData;
         ////var userData = loginDataList.FirstOrDefault(x => x.username == request.username);
@@ -26,9 +27,9 @@ public class AuthController : ControllerBase
         //}
         //else
         //{
-            //var token = GenerateToken(userData.username, userData.tag);
-            //return Ok(new { token });
-            return Ok("");
+        //var token = GenerateToken(userData.username, userData.tag);
+        //return Ok(new { token });
+        return Ok(await _service.LoginAsync(request, CancellationToken.None));
         //}
     }
 

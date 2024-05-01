@@ -9,6 +9,7 @@ namespace WebApi.Services;
 
 public interface IAccountService
 {
+    Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
     Task<string> CreateAsync(UserAddEditRequest request, CancellationToken cancellationToken);
     Task<string> UpdateAsync(long user_id, UserAddEditRequest request, CancellationToken cancellationToken);
     Task<string> DeleteAsync(long user_id, CancellationToken cancellationToken);
@@ -105,6 +106,26 @@ public class AccountService(IDapperService _dapperService) : IAccountService
         catch (Exception ex)
         {
             throw;
+        }
+    }
+
+    public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    {
+        var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_user_password('{request.username}')");
+        if (hashedPassword is null)
+        {
+            return new ApiResponse<LoginResponse>(null, "Invalid User Name");
+        }
+        else
+        {
+            if (PasswordHasher.VerifyPassword(request.password, hashedPassword))
+            {
+                return new ApiResponse<LoginResponse>(null, "Ok");
+            }
+            else
+            {
+                return new ApiResponse<LoginResponse>(null, "Invalid Password");
+            }
         }
     }
 }
