@@ -3,6 +3,9 @@ using System.Text;
 
 namespace WebApi.Common;
 
+using System;
+using System.Security.Cryptography;
+
 public class PasswordHasher
 {
     // Salt size in bytes
@@ -12,7 +15,10 @@ public class PasswordHasher
     private const int HashSize = 20;
 
     // Iterations count
-    private const int Iterations = 562200;
+    private const int Iterations = 562266;
+
+    // Secret key
+    private const string SecretKey = "YourSecretKeyHereAAAAAAAAAAAAAA"; // Change this to your actual secret key
 
     public static string HashPassword(string password)
     {
@@ -20,8 +26,13 @@ public class PasswordHasher
         byte[] salt;
         new RNGCryptoServiceProvider().GetBytes(salt = new byte[SaltSize]);
 
+        // Combine salt and secret key
+        byte[] saltWithKey = new byte[salt.Length + SecretKey.Length];
+        Buffer.BlockCopy(salt, 0, saltWithKey, 0, salt.Length);
+        Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes(SecretKey), 0, saltWithKey, salt.Length, SecretKey.Length);
+
         // Create a new instance of the Rfc2898DeriveBytes class
-        var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations);
+        var pbkdf2 = new Rfc2898DeriveBytes(password, saltWithKey, Iterations);
 
         // Get the hash value
         byte[] hash = pbkdf2.GetBytes(HashSize);
@@ -46,8 +57,13 @@ public class PasswordHasher
         byte[] salt = new byte[SaltSize];
         Array.Copy(hashBytes, 0, salt, 0, SaltSize);
 
+        // Combine salt and secret key
+        byte[] saltWithKey = new byte[salt.Length + SecretKey.Length];
+        Buffer.BlockCopy(salt, 0, saltWithKey, 0, salt.Length);
+        Buffer.BlockCopy(System.Text.Encoding.UTF8.GetBytes(SecretKey), 0, saltWithKey, salt.Length, SecretKey.Length);
+
         // Compute the hash on the password the user entered
-        var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations);
+        var pbkdf2 = new Rfc2898DeriveBytes(password, saltWithKey, Iterations);
         byte[] hash = pbkdf2.GetBytes(HashSize);
 
         // Compare the hashes
