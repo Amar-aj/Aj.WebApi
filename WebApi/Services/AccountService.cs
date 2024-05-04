@@ -111,14 +111,14 @@ public class AccountService(IDapperService _dapperService) : IAccountService
 
     public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_user_password('{request.username}')");
+        var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_user_password('{request.email.Trim()}')");
         if (hashedPassword is null)
         {
             return new ApiResponse<LoginResponse>(null, "Invalid User Name");
         }
         else
         {
-            if (PasswordHasher.VerifyPassword(request.password, hashedPassword))
+            if (PasswordHasher.VerifyPassword(request.password.Trim(), hashedPassword))
             {
                 return new ApiResponse<LoginResponse>(null, "Ok");
             }
