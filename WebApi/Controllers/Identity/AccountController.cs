@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Common;
 using WebApi.Models;
 using WebApi.Services;
 
@@ -11,18 +12,21 @@ public class AccountController(IAccountService _service) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> PostAsync(UserAddEditRequest request)
-    {
-        return Ok(await _service.CreateAsync(request, cancellationToken: CancellationToken.None));
-    }
+        => ApiResponseHandler.Handle(await _service.CreateAsync(request, cancellationToken: CancellationToken.None));
+    
     [HttpPut("{user_id:long}")]
-    public async Task<IActionResult> PutAsync(long user_id, UserAddEditRequest request)
-    {
-        return Ok(await _service.UpdateAsync(user_id, request, cancellationToken: CancellationToken.None));
-    }
+    public async Task<IActionResult> PutAsync(long user_id, UserAddEditRequest request) 
+        => ApiResponseHandler.Handle(await _service.UpdateAsync(user_id, request, cancellationToken: CancellationToken.None));
+    
     [HttpDelete("{user_id:long}")]
-    public async Task<IActionResult> DeleteAsync(long user_id)
+    public async Task<IActionResult> DeleteAsync(long user_id) 
+        => ApiResponseHandler.Handle(await _service.DeleteAsync(user_id, cancellationToken: CancellationToken.None));
+    
+
+    [HttpGet("{user_id:long}")]
+    public async Task<IActionResult> GetAsync(long user_id)
     {
-        return Ok(await _service.DeleteAsync(user_id, cancellationToken: CancellationToken.None));
+        return Ok(await _service.GetAsync(user_id, cancellationToken: CancellationToken.None));
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(int page_number, int page_size)

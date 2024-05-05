@@ -9,16 +9,17 @@ namespace WebApi.Services;
 
 public interface IAccountService
 {
-    Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
-    Task<string> CreateAsync(UserAddEditRequest request, CancellationToken cancellationToken);
-    Task<string> UpdateAsync(long user_id, UserAddEditRequest request, CancellationToken cancellationToken);
-    Task<string> DeleteAsync(long user_id, CancellationToken cancellationToken);
+    Task<ApiTokenResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
+    Task<ApiResponse<long>> CreateAsync(UserAddEditRequest request, CancellationToken cancellationToken);
+    Task<ApiResponse<long>> UpdateAsync(long user_id, UserAddEditRequest request, CancellationToken cancellationToken);
+    Task<ApiResponse<long>> DeleteAsync(long user_id, CancellationToken cancellationToken);
+    Task<ApiResponse<UserReadResponse>> GetAsync(long user_id, CancellationToken cancellationToken);
     Task<ApiPaginationResponse<UserReadResponse>> GetAsync(int page_number, int page_size, CancellationToken cancellationToken);
 }
 
 public class AccountService(IDapperService _dapperService) : IAccountService
 {
-    public async Task<string> CreateAsync(UserAddEditRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<long>> CreateAsync(UserAddEditRequest request, CancellationToken cancellationToken)
     {
         var parameters = new DynamicParameters();
 
@@ -32,21 +33,18 @@ public class AccountService(IDapperService _dapperService) : IAccountService
         parameters.Add("p_updated_by", null, DbType.Int64);
         parameters.Add("p_deleted_by", null, DbType.Int64);
         parameters.Add("p_message", dbType: DbType.String, direction: ParameterDirection.Output);
+        parameters.Add("p_status_code", dbType: DbType.String, direction: ParameterDirection.Output);
 
+        var result = await _dapperService.InsertAsync<long>("sp_user_create_update_delete", parameters);
+        var message = parameters.Get<string>("p_message");
+        var user_id = parameters.Get<long>("p_user_id");
+        var status_code = parameters.Get<int>("p_status_code");
 
-        try
-        {
-            var result = await _dapperService.InsertAsync<string>("sp_user_create_update", parameters);
-            var message = parameters.Get<string>("p_message");
-            return message;
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        return new ApiResponse<long>(user_id, message, status_code);
+
 
     }
-    public async Task<string> UpdateAsync(long user_id, UserAddEditRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<long>> UpdateAsync(long user_id, UserAddEditRequest request, CancellationToken cancellationToken)
     {
         var parameters = new DynamicParameters();
 
@@ -60,28 +58,20 @@ public class AccountService(IDapperService _dapperService) : IAccountService
         parameters.Add("p_updated_by", 1, DbType.Int64);
         parameters.Add("p_deleted_by", null, DbType.Int64);
         parameters.Add("p_message", dbType: DbType.String, direction: ParameterDirection.Output);
+        parameters.Add("p_status_code", dbType: DbType.String, direction: ParameterDirection.Output);
 
 
-        try
-        {
-            var result = await _dapperService.InsertAsync<string>("sp_user_create_update", parameters);
-            var message = parameters.Get<string>("p_message");
-            return message;
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
-    }
-    public async Task<ApiPaginationResponse<UserReadResponse>> GetAsync(int page_number, int page_size, CancellationToken cancellationToken)
-    {
+        var result = await _dapperService.InsertAsync<long>("sp_user_create_update_delete", parameters);
+        var message = parameters.Get<string>("p_message");
+        var user_ids = parameters.Get<long>("p_user_id");
+        var status_code = parameters.Get<int>("p_status_code");
 
-        var jsonResponseString = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_users_pagination({page_number}, {page_size})");
-        return JsonConvert.DeserializeObject<ApiPaginationResponse<UserReadResponse>>(jsonResponseString);
+        return new ApiResponse<long>(user_ids, message, status_code);
 
     }
 
-    public async Task<string> DeleteAsync(long user_id, CancellationToken cancellationToken)
+
+    public async Task<ApiResponse<long>> DeleteAsync(long user_id, CancellationToken cancellationToken)
     {
         var parameters = new DynamicParameters();
 
@@ -95,37 +85,84 @@ public class AccountService(IDapperService _dapperService) : IAccountService
         parameters.Add("p_updated_by", null, DbType.Int64);
         parameters.Add("p_deleted_by", 1, DbType.Int64);
         parameters.Add("p_message", dbType: DbType.String, direction: ParameterDirection.Output);
+        parameters.Add("p_status_code", dbType: DbType.String, direction: ParameterDirection.Output);
 
 
-        try
-        {
-            var result = await _dapperService.InsertAsync<string>("sp_user_create_update", parameters);
-            var message = parameters.Get<string>("p_message");
-            return message;
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
+        var result = await _dapperService.InsertAsync<long>("sp_user_create_update_delete", parameters);
+        var message = parameters.Get<string>("p_message");
+        var user_ids = parameters.Get<long>("p_user_id");
+        var status_code = parameters.Get<int>("p_status_code");
+
+        return new ApiResponse<long>(user_ids, message, status_code);
+
     }
-
-    public async Task<ApiResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<UserReadResponse>> GetAsync(long user_id, CancellationToken cancellationToken)
     {
-        var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_user_password('{request.email.Trim()}')");
-        if (hashedPassword is null)
+        var jsonResponseString = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_identity_users_pagination({1}, {1},{null},{user_id})");
+        var data = JsonConvert.DeserializeObject<ApiPaginationResponse<UserReadResponse>>(jsonResponseString);
+        if (data.Data is null)
         {
-            return new ApiResponse<LoginResponse>(null, "Invalid User Name");
+            return new ApiResponse<UserReadResponse>(null, data.Message, 200);
+
         }
         else
         {
-            if (PasswordHasher.VerifyPassword(request.password.Trim(), hashedPassword))
+            var singleData = new UserReadResponse
             {
-                return new ApiResponse<LoginResponse>(null, "Ok");
+                user_id = user_id,
+                email = data.Data[0].email,
+                username = data.Data[0].username,
+                is_active = data.Data[0].is_active
+            };
+            return new ApiResponse<UserReadResponse>(singleData, data.Message, 200);
+        }
+    }
+    public async Task<ApiPaginationResponse<UserReadResponse>> GetAsync(int page_number, int page_size, CancellationToken cancellationToken)
+    {
+
+        var jsonResponseString = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_identity_users_pagination({page_number}, {page_size})");
+        return JsonConvert.DeserializeObject<ApiPaginationResponse<UserReadResponse>>(jsonResponseString);
+
+    }
+    public async Task<ApiTokenResponse<LoginResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_identity_user_password('{request.email.Trim()}')");
+            if (hashedPassword is null)
+            {
+                return new ApiTokenResponse<LoginResponse>(null, "Invalid User Name");
             }
             else
             {
-                return new ApiResponse<LoginResponse>(null, "Invalid Password");
+                if (PasswordHasher.VerifyPassword(request.password.Trim(), hashedPassword))
+                {
+                    var jsonResponseString = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_identity_users_pagination({1}, {1},'{request.email}')");
+                    var data = JsonConvert.DeserializeObject<ApiPaginationResponse<UserReadResponse>>(jsonResponseString);
+                    if (data.Data is null)
+                    {
+                        return new ApiTokenResponse<LoginResponse>(null, data.Message, 200);
+                    }
+                    else
+                    {
+                        var token = JwtToken.GenerateToken(data.Data[0].username, "admin");
+                        var singleData = new LoginResponse(data.Data[0].user_id, data.Data[0].email, data.Data[0].username);
+                        return new ApiTokenResponse<LoginResponse>(singleData, "You are successfully logged in", 200, token);
+                    }
+                }
+                else
+                {
+                    return new ApiTokenResponse<LoginResponse>(null, "Invalid Password");
+                }
             }
         }
+        catch (Exception)
+        {
+
+            throw;
+        }
+
     }
+
+
 }

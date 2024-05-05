@@ -14,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<DapperDbContext>();
 builder.Services.AddScoped<IDapperService, DapperService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IRoleServices, RoleServices>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>

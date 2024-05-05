@@ -8,13 +8,13 @@ public class ApiResponse<T>
     public T Data { get; set; }
     public string Message { get; set; }
     [JsonIgnore]
-    public int StatusCode { get; set; }
+    public int status_code { get; set; }
 
     public ApiResponse(T data = default, string message = null, int statusCode = 0)
     {
         Data = data;
         Message = message;
-        StatusCode = statusCode;
+        status_code = statusCode;
     }
 }
 
@@ -47,8 +47,8 @@ public class ApiTokenResponse<T>
 {
     public T Data { get; set; }
     public string Message { get; set; }
-    public int status_code { get; set; }
     [JsonIgnore]
+    public int status_code { get; set; }
 
     public string Token { get; set; }
 
