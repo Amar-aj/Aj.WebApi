@@ -131,7 +131,7 @@ public class AccountService(IDapperService _dapperService) : IAccountService
             var hashedPassword = await _dapperService.FunctionCallAsync($"SELECT * FROM fun_identity_user_password('{request.email.Trim()}')");
             if (hashedPassword is null)
             {
-                return new ApiTokenResponse<LoginResponse>(null, "Invalid User Name");
+                return new ApiTokenResponse<LoginResponse>(null, "Invalid Email");
             }
             else
             {
