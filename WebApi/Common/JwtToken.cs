@@ -16,6 +16,7 @@ namespace WebApi.Common
             // Create claims identity with user information
             ClaimsIdentity claimsIdentity = new ClaimsIdentity(new[]
             {
+        new Claim(ClaimTypes.NameIdentifier, username),
         new Claim(ClaimTypes.Name, username),
         new Claim("role", role)
     });
